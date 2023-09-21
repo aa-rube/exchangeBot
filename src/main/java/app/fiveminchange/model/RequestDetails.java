@@ -19,6 +19,15 @@ public class RequestDetails {
     private String fromAccount;
     private String toAccount;
     private String user;
+    private String statusMessage;
+
+    public String getStatusMessage() {
+        return statusMessage;
+    }
+
+    public void setStatusMessage(String statusMessage) {
+        this.statusMessage = statusMessage;
+    }
 
     public String getStatus() {
         return status;

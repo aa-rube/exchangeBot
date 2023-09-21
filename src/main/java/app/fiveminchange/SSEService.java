@@ -6,10 +6,10 @@ import app.fiveminchange.model.RootObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+
+import java.time.Duration;
 
 @Service
 public class SSEService implements CommandLineRunner {
@@ -24,12 +24,12 @@ public class SSEService implements CommandLineRunner {
         listenToSSEVerify(10, 0, "verify");
         listenToSSEWait(10, 0, "wait");
     }
+
     public SSEService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.baseUrl("https://5minchange.ru/api/admin/").build();
     }
 
-    @Async
-        public void listenToSSEVerify(int limit, int skip, String filter) {
+    public void listenToSSEVerify(int limit, int skip, String filter) {
         webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/getRequests")
@@ -40,20 +40,26 @@ public class SSEService implements CommandLineRunner {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(RootObject.class)
+                .timeout(Duration.ofMinutes(1)) // Таймаут в 1 минуту
                 .doOnSubscribe(subscription -> {
                 }).doOnNext(rootObject -> {
+                    System.out.println("Received data, starting processing...");
                     for (RequestDetails request : rootObject.getRequests()) {
-                        if ("VERIFY".equals(request.getStatus())) {
-                            chat.executeMsg(createMsg.getNewSendMessage(request));
-                        }
+                        chat.executeMsg(createMsg.getNewSendMessage(request));
                     }
+                    System.out.println("Data processing completed.");
                 })
+
+                .doOnError(e -> {
+                    System.out.println("Error on SSE connection: " + e.getMessage());
+                })
+                .retry(5) // Попробовать подключиться 5 раз при ошибке
                 .doOnTerminate(() -> {
                     System.out.println("SSE connection with filter " + filter + " terminated");
                 })
                 .subscribe();
     }
-    @Async
+
     public void listenToSSEWait(int limit, int skip, String filter) {
         webClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -65,19 +71,24 @@ public class SSEService implements CommandLineRunner {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(RootObject.class)
+                .timeout(Duration.ofMinutes(1)) // Таймаут в 1 минуту
                 .doOnSubscribe(subscription -> {
                 }).doOnNext(rootObject -> {
+                    System.out.println("Received data, starting processing...");
                     for (RequestDetails request : rootObject.getRequests()) {
-                        if ("WAIT".equals(request.getStatus())) {
-                            chat.executeMsg(createMsg.getNewSendMessage(request));
-                        }
+                        chat.executeMsg(createMsg.getNewSendMessage(request));
                     }
+                    System.out.println("Data processing completed.");
                 })
 
+                .doOnError(e -> {
+                    System.out.println("Error on SSE connection: " + e.getMessage());
+                })
+                .retry(5) // Попробовать подключиться 5 раз при ошибке
                 .doOnTerminate(() -> {
                     System.out.println("SSE connection with filter " + filter + " terminated");
                 })
-
                 .subscribe();
     }
+
 }

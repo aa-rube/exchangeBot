@@ -47,7 +47,7 @@ public class CreateMsg {
 
         builder.append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress()).append(underLine);
 
-        builder.append("\uD83D\uDCAD Комментарий:\n").append("comment does not provide from json");
+        builder.append("\uD83D\uDCAD Комментарий:\n").append(request.getStatusMessage());
 
         return builder.toString();
     }
