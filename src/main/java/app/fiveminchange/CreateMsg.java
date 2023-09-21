@@ -1,6 +1,8 @@
 package app.fiveminchange;
 
 import app.fiveminchange.model.RequestDetails;
+import app.ipinfo.IpInfoService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
@@ -10,9 +12,9 @@ import java.util.List;
 
 @Service
 public class CreateMsg {
+    @Autowired
+    private IpInfoService ipInfo;
     private final String underLine = "\n____________________\n";
-    private final String eng = "\uD83C\uDDEC\uD83C\uDDE7";
-    private final String rus = "\uD83C\uDDF7\uD83C\uDDFA";
 
     public SendMessage getNewSendMessage(RequestDetails request) {
         String text = createMsgText(request);
@@ -28,7 +30,7 @@ public class CreateMsg {
     private String createMsgText(RequestDetails request) {
         StringBuffer builder = new StringBuffer();
 
-        builder.append(rus).append(eng).append("Новая заявка\n");
+        builder.append(ipInfo.getEmoji(request.getIpAddress().trim())).append("Новая заявка\n");
 
         builder.append("ID Заявки\n").append(request.getRequestId()).append(underLine);
 
