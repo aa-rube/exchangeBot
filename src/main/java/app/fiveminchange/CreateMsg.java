@@ -26,7 +26,7 @@ public class CreateMsg {
     }
 
     private String createMsgText(RequestDetails request) {
-        StringBuilder builder = new StringBuilder();
+        StringBuffer builder = new StringBuffer();
 
         builder.append(rus).append(eng).append("Новая заявка\n");
 

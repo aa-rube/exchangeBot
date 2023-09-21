@@ -6,6 +6,7 @@ import app.fiveminchange.model.RootObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -27,7 +28,8 @@ public class SSEService implements CommandLineRunner {
         this.webClient = webClientBuilder.baseUrl("https://5minchange.ru/api/admin/").build();
     }
 
-    public void listenToSSEVerify(int limit, int skip, String filter) {
+    @Async
+        public void listenToSSEVerify(int limit, int skip, String filter) {
         webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/getRequests")
@@ -39,8 +41,7 @@ public class SSEService implements CommandLineRunner {
                 .retrieve()
                 .bodyToFlux(RootObject.class)
                 .doOnSubscribe(subscription -> {
-                })
-                .doOnNext(rootObject -> {
+                }).doOnNext(rootObject -> {
                     for (RequestDetails request : rootObject.getRequests()) {
                         if ("VERIFY".equals(request.getStatus())) {
                             chat.executeMsg(createMsg.getNewSendMessage(request));
@@ -52,28 +53,7 @@ public class SSEService implements CommandLineRunner {
                 })
                 .subscribe();
     }
-
-
-    //    public void listenToSSEVerify(int limit, int skip, String filter) {
-//        webClient.get()
-//                .uri(uriBuilder -> uriBuilder
-//                        .path("/getRequests")
-//                        .queryParam("limit", limit)
-//                        .queryParam("skip", skip)
-//                        .queryParam("filter", filter)
-//                        .build())
-//                .accept(MediaType.TEXT_EVENT_STREAM)
-//                .retrieve()
-//                .bodyToFlux(RootObject.class)
-//                .doOnSubscribe(subscription -> {
-//                }).doOnNext(rootObject -> {
-//                    for (RequestDetails request : rootObject.getRequests()) {
-//                        if ("VERIFY".equals(request.getStatus())) {
-//                            chat.executeMsg(createMsg.getNewSendMessage(request));
-//                        }
-//                    }
-//                }).subscribe();
-//    }
+    @Async
     public void listenToSSEWait(int limit, int skip, String filter) {
         webClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -92,7 +72,12 @@ public class SSEService implements CommandLineRunner {
                             chat.executeMsg(createMsg.getNewSendMessage(request));
                         }
                     }
-                }).subscribe();
-    }
+                })
 
+                .doOnTerminate(() -> {
+                    System.out.println("SSE connection with filter " + filter + " terminated");
+                })
+
+                .subscribe();
+    }
 }
