@@ -1,6 +1,5 @@
 package app.ipinfo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
@@ -13,13 +12,14 @@ import java.util.regex.Pattern;
 
 @Service
 public class IpInfoService {
-    private final String IPV4_PATTERN = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
-    private final Pattern pattern = Pattern.compile(IPV4_PATTERN);
+    private static final String IPV4_PATTERN = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+    private static final Pattern pattern = Pattern.compile(IPV4_PATTERN);
+    private static final String BASE_URL = "https://ipinfo.io/";
 
+    private final OkHttpClient client = new OkHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private String getCountryByIp(String ip) {
-        String BASE_URL = "https://ipinfo.io/";
-        OkHttpClient client = new OkHttpClient();
+    private String getCountryByIp(String ip) throws IOException {
         Request request = new Request.Builder()
                 .url(BASE_URL + ip + "/json")
                 .build();
@@ -28,24 +28,17 @@ public class IpInfoService {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response);
             }
-
             return response.body().string();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
         }
     }
 
     public String extractCountry(String ip) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode rootNode = null;
         try {
-            rootNode = objectMapper.readTree(getCountryByIp(ip));
-        } catch (JsonProcessingException e) {
+            JsonNode rootNode = objectMapper.readTree(getCountryByIp(ip));
+            return rootNode.get("country").asText();
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return rootNode.get("country").asText();
     }
 
     public String getEmoji(String ip) {

@@ -1,5 +1,6 @@
 package app.fiveminchange;
 
+import app.bot.config.BotConfig;
 import app.fiveminchange.model.RequestDetails;
 import app.ipinfo.IpInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,9 @@ import java.util.List;
 public class CreateMsg {
     @Autowired
     private IpInfoService ipInfo;
+
+    @Autowired
+    private BotConfig config;
     private final String underLine = "\n____________________\n";
 
     public SendMessage getNewSendMessage(RequestDetails request) {
@@ -21,63 +25,60 @@ public class CreateMsg {
         List<MessageEntity> entities = createEntities(request, text);
 
         SendMessage sendMsg = new SendMessage();
-        sendMsg.setChatId(795363892L);
+        sendMsg.setChatId(config.getAdminChatId());
         sendMsg.setText(text);
         sendMsg.setEntities(entities);
         return sendMsg;
     }
 
     private String createMsgText(RequestDetails request) {
-        StringBuffer builder = new StringBuffer();
+        StringBuilder builder = new StringBuilder();
 
-        builder.append(ipInfo.getEmoji(request.getIpAddress().trim())).append("Новая заявка\n");
-
-        builder.append("ID Заявки\n").append(request.getRequestId()).append(underLine);
-
-        builder.append("\nПолучаем\n").append(request.getFromBank().getCode()).append(" ")
-                .append(request.getFromValue()).append("\n").append(request.getFromAccount()).append("\n");
-
-        builder.append("\nОтдаем\n").append(request.getToBank().getCode()).append(" ")
-                .append(request.getToValue()).append("\n")
-                .append(request.getToAccount()).append(underLine);
-
-        builder.append("\uD83D\uDCC7 Комиссия: ").append(request.getCommission()).append("\n");
-        builder.append("\uD83D\uDCB8 Прибыль\n").append("сумма прибыли").append(" ")
-                .append("SBERRUB\n").append(underLine);
-
-        builder.append("\uD83D\uDCEC Контактные данные\n").append("email does not provide from json\n");
-
-        builder.append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress()).append(underLine);
-
-        builder.append("\uD83D\uDCAD Комментарий:\n").append(request.getStatusMessage());
+        builder.append(ipInfo.getEmoji(request.getIpAddress().trim()))
+                .append("Новая заявка\n")
+                .append(formatRequestDetails(request))
+                .append("\uD83D\uDCAD Комментарий:\n").append(request.getStatusMessage());
 
         return builder.toString();
     }
 
+    private String formatRequestDetails(RequestDetails request) {
+        return new StringBuilder()
+                .append("ID Заявки\n").append(request.getRequestId()).append(underLine)
+                .append("\nПолучаем\n").append(request.getFromBank().getCode()).append(" ")
+                .append(request.getFromValue()).append("\n").append(request.getFromAccount()).append("\n")
+                .append("\nОтдаем\n").append(request.getToBank().getCode()).append(" ")
+                .append(request.getToValue()).append("\n")
+                .append(request.getToAccount()).append(underLine)
+                .append(formatCommissionDetails(request)).append("\n")
+                .append("\uD83D\uDCB8 Прибыль\n").append("сумма прибыли").append(" ")
+                .append("SBERRUB").append(underLine)
+                .append("\uD83D\uDCEC Контактные данные\n").append("email does not provide from json\n\n")
+                .append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress()).append(underLine)
+                .toString();
+    }
+
+    private String formatCommissionDetails(RequestDetails request) {
+        return "\uD83D\uDCC7 Комиссия: " + request.getCommission() + "\n";
+    }
 
     private List<MessageEntity> createEntities(RequestDetails request, String messageText) {
         List<MessageEntity> entities = new ArrayList<>();
 
-        MessageEntity first = new MessageEntity();
-        String firstFragment = request.getFromAccount();
-        if (firstFragment != null) {
-            first.setType("code");
-            first.setText(firstFragment);
-            first.setLength(firstFragment.length());
-            first.setOffset(messageText.indexOf(firstFragment));
-            entities.add(first);
-        }
+        addMessageEntity(entities, request.getFromAccount(), messageText);
+        addMessageEntity(entities, request.getToAccount(), messageText);
 
-        MessageEntity second = new MessageEntity();
-        String secondFragment = request.getToAccount();
-
-        if(secondFragment != null) {
-            second.setType("code");
-            second.setText(secondFragment);
-            second.setLength(secondFragment.length());
-            second.setOffset(messageText.indexOf(secondFragment));
-            entities.add(second);
-        }
         return entities;
+    }
+
+    private void addMessageEntity(List<MessageEntity> entities, String fragment, String messageText) {
+        if(fragment != null) {
+            MessageEntity entity = new MessageEntity();
+            entity.setType("code");
+            entity.setText(fragment);
+            entity.setLength(fragment.length());
+            entity.setOffset(messageText.indexOf(fragment));
+            entities.add(entity);
+        }
     }
 }
