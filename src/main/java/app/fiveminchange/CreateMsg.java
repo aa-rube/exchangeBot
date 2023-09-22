@@ -51,9 +51,9 @@ public class CreateMsg {
                 .append(request.getToValue()).append("\n")
                 .append(request.getToAccount()).append(underLine)
                 .append(formatCommissionDetails(request)).append("\n")
-                .append("\uD83D\uDCB8 Прибыль\n").append("сумма прибыли").append(" ")
+                .append("\uD83D\uDCB8 Прибыль\n").append(request.getFromValue() * (request.getCommission()/100)).append(" ")
                 .append("SBERRUB").append(underLine)
-                .append("\uD83D\uDCEC Контактные данные\n").append("email does not provide from json\n\n")
+               // .append("\uD83D\uDCEC Контактные данные\n").append("email does not provide from json\n\n")
                 .append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress()).append(underLine)
                 .toString();
     }
