@@ -23,8 +23,8 @@ public class SSEService implements CommandLineRunner {
     @Autowired
     private CreateMsg createMsg;
 
-    private Instant lastWaitTime = Instant.now().plus(Duration.ofHours(3));
-    private Instant lastVerifyTime = Instant.now().plus(Duration.ofHours(3));
+//    private Instant lastWaitTime = Instant.now().plus(Duration.ofHours(3));
+//    private Instant lastVerifyTime = Instant.now().plus(Duration.ofHours(3));
 
     private final WebClient webClient;
 
@@ -52,26 +52,28 @@ public class SSEService implements CommandLineRunner {
                 .publish()
                 .autoConnect()
                 .doOnNext(rootObject -> {
-                    List<RequestDetails> list = rootObject.getRequests();
-
-                    Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
-
-                    list.stream()
-                            .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
-                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
-
-                    list.stream()
-                            .map(RequestDetails::getDate)
-                            .map(Instant::parse)
-                            .max(Comparator.naturalOrder())
-                            .ifPresent(maxDate -> {
-                                if (filter.equals("wait")) {
-                                    lastWaitTime = maxDate;
-                                } else if (filter.equals("verify")) {
-                                    lastVerifyTime = maxDate;
-                                }
-                            });
-
+                    for(RequestDetails request : rootObject.getRequests()) {
+                        chat.executeMsg(createMsg.getNewSendMessage(request));
+                    }
+//                    List<RequestDetails> list = rootObject.getRequests();
+//
+//                    Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
+//
+//                    list.stream()
+//                            .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
+//                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
+//
+//                    list.stream()
+//                            .map(RequestDetails::getDate)
+//                            .map(Instant::parse)
+//                            .max(Comparator.naturalOrder())
+//                            .ifPresent(maxDate -> {
+//                                if (filter.equals("wait")) {
+//                                    lastWaitTime = maxDate;
+//                                } else if (filter.equals("verify")) {
+//                                    lastVerifyTime = maxDate;
+//                                }
+//                            });
                 })
                 .doOnError(e -> {
                     System.out.println("Соединение с сервером было закрыто: " + e.getMessage());
