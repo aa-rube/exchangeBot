@@ -4,12 +4,10 @@ import app.bot.controller.Chat;
 import app.fiveminchange.model.RequestDetails;
 import app.fiveminchange.model.RootObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -52,11 +50,12 @@ public class SSEService {
                 .publish()
                 .autoConnect()
                 .doOnNext(rootObject -> {
+                   // chat.executeMsg(createMsg.getNewSendMessage(rootObject.getRequests().get(9), filter));
                     List<RequestDetails> list = rootObject.getRequests();
                     Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
                     list.stream()
                             .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
-                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
+                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request, filter)));
 
                     list.stream()
                             .map(RequestDetails::getDate)
@@ -71,6 +70,7 @@ public class SSEService {
                             });
                     list.clear();
                 })
+
                 .subscribe();
     }
 }
