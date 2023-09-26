@@ -17,14 +17,14 @@ import java.util.Comparator;
 import java.util.List;
 
 @Service
-public class SSEService implements CommandLineRunner {
+public class SSEService {
     @Autowired
     private Chat chat;
     @Autowired
     private CreateMsg createMsg;
 
-//    private Instant lastWaitTime = Instant.now().plus(Duration.ofHours(3));
-//    private Instant lastVerifyTime = Instant.now().plus(Duration.ofHours(3));
+    private Instant lastWaitTime = Instant.now().plus(Duration.ofHours(3));
+    private Instant lastVerifyTime = Instant.now().plus(Duration.ofHours(3));
 
     private final WebClient webClient;
 
@@ -32,10 +32,10 @@ public class SSEService implements CommandLineRunner {
         this.webClient = webClientBuilder.baseUrl("https://5minchange.ru/api/admin/").build();
     }
 
-    @Override
-    public void run(String... args) throws Exception {
-        listenToSSE(10, 0, "wait");
+    @Scheduled(fixedRate = 6000)
+    public void getUpdate() {
         listenToSSE(10, 0, "verify");
+        listenToSSE(10, 0, "wait");
     }
 
     public void listenToSSE(int limit, int skip, String filter) {
@@ -52,105 +52,25 @@ public class SSEService implements CommandLineRunner {
                 .publish()
                 .autoConnect()
                 .doOnNext(rootObject -> {
-                    for(RequestDetails request : rootObject.getRequests()) {
-                        chat.executeMsg(createMsg.getNewSendMessage(request));
-                    }
-//                    List<RequestDetails> list = rootObject.getRequests();
-//
-//                    Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
-//
-//                    list.stream()
-//                            .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
-//                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
-//
-//                    list.stream()
-//                            .map(RequestDetails::getDate)
-//                            .map(Instant::parse)
-//                            .max(Comparator.naturalOrder())
-//                            .ifPresent(maxDate -> {
-//                                if (filter.equals("wait")) {
-//                                    lastWaitTime = maxDate;
-//                                } else if (filter.equals("verify")) {
-//                                    lastVerifyTime = maxDate;
-//                                }
-//                            });
+                    List<RequestDetails> list = rootObject.getRequests();
+                    Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
+                    list.stream()
+                            .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
+                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
+
+                    list.stream()
+                            .map(RequestDetails::getDate)
+                            .map(Instant::parse)
+                            .max(Comparator.naturalOrder())
+                            .ifPresent(maxDate -> {
+                                if (filter.equals("wait")) {
+                                    lastWaitTime = maxDate;
+                                } else if (filter.equals("verify")) {
+                                    lastVerifyTime = maxDate;
+                                }
+                            });
+                    list.clear();
                 })
-                .doOnError(e -> {
-                    System.out.println("Соединение с сервером было закрыто: " + e.getMessage());
-                })
-                .onErrorResume(e -> Flux.empty())
                 .subscribe();
     }
-
-
-//    public void listenToSSE(int limit, int skip, String filter) {
-//        webClient.get()
-//                .uri(uriBuilder -> uriBuilder
-//                        .path("/getRequests")
-//                        .queryParam("limit", limit)
-//                        .queryParam("skip", skip)
-//                        .queryParam("filter", filter)
-//                        .build())
-//                .accept(MediaType.TEXT_EVENT_STREAM)
-//                .retrieve()
-//                .bodyToFlux(RootObject.class)
-//                .publish()
-//                .autoConnect()
-//                .doOnNext(rootObject -> {
-//                    List<RequestDetails> list = rootObject.getRequests();
-//
-//                    Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
-//
-//                    list.stream()
-//                            .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
-//                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
-//
-//                    list.stream()
-//                            .map(RequestDetails::getDate)
-//                            .map(Instant::parse)
-//                            .max(Comparator.naturalOrder())
-//                            .ifPresent(maxDate -> {
-//                                if (filter.equals("wait")) {
-//                                    lastWaitTime = maxDate;
-//                                } else if (filter.equals("verify")) {
-//                                    lastVerifyTime = maxDate;
-//                                }
-//                            });
-//
-//                }).subscribe();
-//    }
-//    public void listenToSSE(int limit, int skip, String filter) {
-//        webClient.get()
-//                .uri(uriBuilder -> uriBuilder
-//                        .path("/getRequests")
-//                        .queryParam("limit", limit)
-//                        .queryParam("skip", skip)
-//                        .queryParam("filter", filter)
-//                        .build())
-//                .accept(MediaType.TEXT_EVENT_STREAM)
-//                .retrieve()
-//                .bodyToFlux(RootObject.class)
-//                .doOnNext(rootObject -> {
-//                    List<RequestDetails> list = rootObject.getRequests();
-//
-//                    Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
-//
-//                    list.stream()
-//                            .filter(request -> Instant.parse(request.getDate()).isAfter(lastTime))
-//                            .forEach(request -> chat.executeMsg(createMsg.getNewSendMessage(request)));
-//
-//                    list.stream()
-//                            .map(RequestDetails::getDate)
-//                            .map(Instant::parse)
-//                            .max(Comparator.naturalOrder())
-//                            .ifPresent(maxDate -> {
-//                                if (filter.equals("wait")) {
-//                                    lastWaitTime = maxDate;
-//                                } else if (filter.equals("verify")) {
-//                                    lastVerifyTime = maxDate;
-//                                }
-//                            });
-//
-//                }).subscribe();
-//    }
 }

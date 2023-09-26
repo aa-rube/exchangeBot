@@ -15,13 +15,13 @@ import java.util.List;
 public class CreateMsg {
     @Autowired
     private IpInfoService ipInfo;
-
     @Autowired
     private BotConfig config;
-    private final String underLine = "\n____________________\n";
+    private final String underLine = "\n___________________________________\n\n";
 
     public SendMessage getNewSendMessage(RequestDetails request) {
         String text = createMsgText(request);
+        System.out.println(text);
         List<MessageEntity> entities = createEntities(request, text);
 
         SendMessage sendMsg = new SendMessage();
@@ -31,48 +31,48 @@ public class CreateMsg {
         return sendMsg;
     }
 
+
     private String createMsgText(RequestDetails request) {
-        StringBuilder builder = new StringBuilder();
-
-        builder.append(ipInfo.getEmoji(request.getIpAddress().trim()))
-                .append("Новая заявка\n")
-                .append(formatRequestDetails(request))
-                .append("\uD83D\uDCAD Комментарий:\n").append(request.getStatusMessage());
-
-        return builder.toString();
-    }
-
-    private String formatRequestDetails(RequestDetails request) {
         return new StringBuilder()
-                .append("ID Заявки\n").append(request.getRequestId()).append(underLine)
-                .append("\nПолучаем\n").append(request.getFromBank().getCode()).append(" ")
+                .append(ipInfo.getEmoji(request.getIpAddress().trim())).append("Новая заявка\n\n")
+                .append("ID Заявки\n").append(request.getRequestId()).append("\n")
+                .append(underLine)
+                .append("Получаем\n").append(request.getFromBank().getCode()).append(" ")
                 .append(request.getFromValue()).append("\n").append(request.getFromAccount()).append("\n")
                 .append("\nОтдаем\n").append(request.getToBank().getCode()).append(" ")
                 .append(request.getToValue()).append("\n")
-                .append(request.getToAccount()).append(underLine)
-                .append(formatCommissionDetails(request)).append("\n")
-                .append("\uD83D\uDCB8 Прибыль\n").append(request.getFromValue() * (request.getCommission()/100)).append(" ")
-                .append("SBERRUB").append(underLine)
-               // .append("\uD83D\uDCEC Контактные данные\n").append("email does not provide from json\n\n")
+                .append(request.getToAccount())
+                .append(underLine)
+                .append("\uD83D\uDCC7 Комиссия: ").append(request.getCommission()).append("\n\n")
+                .append("\uD83D\uDCB8 Прибыль\n").append(getProfit(request))
+                .append(underLine)
+                .append("\uD83D\uDCEC Контактные данные\n").append(request.getUser().getEmail()).append("\n\n")
                 .append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress()).append(underLine)
+                .append("\uD83D\uDCAD Комментарий:\n").append(request.getStatusMessage() == null ? "Комментария нет" : request.getStatusMessage())
                 .toString();
     }
 
-    private String formatCommissionDetails(RequestDetails request) {
-        return "\uD83D\uDCC7 Комиссия: " + request.getCommission() + "\n";
+    private String getProfit(RequestDetails request) {
+        double commissionMultiplier = (request.getRateIn() == 1) ? 100 - request.getCommission() : 100 + request.getCommission();
+        double profit = (request.getToValue() / commissionMultiplier) * request.getCommission();
+
+        return profit + " " + request.getFromBank().getCode() + "\n";
     }
+
 
     private List<MessageEntity> createEntities(RequestDetails request, String messageText) {
         List<MessageEntity> entities = new ArrayList<>();
 
         addMessageEntity(entities, request.getFromAccount(), messageText);
         addMessageEntity(entities, request.getToAccount(), messageText);
+        addMessageEntity(entities, String.valueOf(request.getFromValue()), messageText);
+        addMessageEntity(entities, String.valueOf(request.getToValue()), messageText);
 
         return entities;
     }
 
     private void addMessageEntity(List<MessageEntity> entities, String fragment, String messageText) {
-        if(fragment != null) {
+        if (fragment != null) {
             MessageEntity entity = new MessageEntity();
             entity.setType("code");
             entity.setText(fragment);

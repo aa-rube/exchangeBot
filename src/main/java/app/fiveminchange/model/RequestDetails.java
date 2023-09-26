@@ -15,10 +15,10 @@ public class RequestDetails {
     private String requestId;
     private String date;
     private int __v;
-    private Object cardImage; // Так как значение может быть null, тип указан как Object. Лучше использовать специфический тип, если известно возможное значение.
+    private Object cardImage;
     private String fromAccount;
     private String toAccount;
-    private String user;
+    private User user;
     private String statusMessage;
 
     public String getStatusMessage() {
@@ -173,11 +173,11 @@ public class RequestDetails {
         this.toAccount = toAccount;
     }
 
-    public String getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(String user) {
+    public void setUser(User user) {
         this.user = user;
     }
 }
