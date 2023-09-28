@@ -23,7 +23,7 @@ public class CreateMsg {
 
     public SendMessage getNewSendMessage(RequestDetails request, String filter) {
         String text = createMsgText(request, filter);
-        System.out.println(text);
+        System.out.println(text);//just for test
         List<MessageEntity> entities = createEntities(request, text);
 
         SendMessage sendMsg = new SendMessage();
@@ -38,50 +38,50 @@ public class CreateMsg {
                 .append(ipInfo.getEmoji(request.getIpAddress().trim())).append("Новая заявка\n\n")
                 .append("ID Заявки\n").append(request.getRequestId()).append(filter.equals("verify") ? " (не верифицировано)" : "").append("\n")
                 .append(underLine)
+
                 .append("Получаем\n").append(request.getFromBank().getCode()).append(" ")
-                .append(formatNumber(request.getFromValue())).append("\n").append(request.getFromAccount()).append("\n")
+                .append(formatValue(request.getFromValue())).append("\n")
+                .append(request.getFromAccount()).append("\n")
+
                 .append("\nОтдаем\n").append(request.getToBank().getCode()).append(" ")
-                .append(formatNumber(request.getToValue())).append("\n")
+                .append(formatValue(request.getToValue())).append("\n")
                 .append(request.getToAccount())
                 .append(underLine)
+
                 .append("\uD83D\uDCC7 Комиссия: ").append(request.getCommission()).append("\n\n")
                 .append("\uD83D\uDCB8 Прибыль\n").append(getProfit(request))
-                .append("\uD83D\uDCEC Контактные данные\n").append(getEmail(request)).append("\n\n")
-                .append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress()).append(underLine)
+                .append(underLine)
+
+                .append("\uD83D\uDCEC Контактные данные\n").append(request.getUser() == null ? "Почта не была указана" : request.getUser().getEmail()).append("\n\n")
+                .append("\uD83C\uDFDD IP адрес\n").append(request.getIpAddress())
+                .append(underLine)
+
                 .append("\uD83D\uDCAD Комментарий:\n").append(request.getStatusMessage() == null ? "Комментария нет" : request.getStatusMessage())
                 .toString();
     }
 
-    private static String formatNumber(double number) {
+    private static String formatValue(double value) {
         NumberFormat numberFormat = DecimalFormat.getInstance();
         numberFormat.setMinimumFractionDigits(0);
-        numberFormat.setMaximumFractionDigits(15);
-        return numberFormat.format(number).trim();
-    }
-
-    private String getEmail(RequestDetails request) {
-        try {
-            return request.getUser().getEmail();
-        } catch (Exception e) {
-        }
-        return "Почта не была указана";
+        numberFormat.setMaximumFractionDigits(19);
+        return numberFormat.format(value);
     }
 
     private String getProfit(RequestDetails request) {
         double commissionMultiplier = (request.getRateIn() == 1) ? 100 - request.getCommission() : 100 + request.getCommission();
-        String str = formatNumber(((request.getRateIn() == 1 ? request.getToValue() : request.getFromValue()) / commissionMultiplier) * request.getCommission());
+        double divisible = (request.getRateIn() == 1 ? request.getToValue() : request.getFromValue());
+        String str = formatValue((divisible / commissionMultiplier) * request.getCommission());
 
-        return str + " " + request.getFromBank().getCode() + "\n" + underLine;
+        return str.substring(0, Math.min(str.length(), 14)) + " " + request.getFromBank().getCode() + "\n";
     }
-
 
     private List<MessageEntity> createEntities(RequestDetails request, String messageText) {
         List<MessageEntity> entities = new ArrayList<>();
 
         addMessageEntityCode(entities, request.getFromAccount(), messageText);
+        addMessageEntityCode(entities, formatValue(request.getFromValue()), messageText);
+        addMessageEntityCode(entities, formatValue(request.getToValue()), messageText);
         addMessageEntityCode(entities, request.getToAccount(), messageText);
-        addMessageEntityCode(entities, formatNumber(request.getFromValue()), messageText);
-        addMessageEntityCode(entities, formatNumber(request.getToValue()), messageText);
 
         if(messageText.contains("(не верифицировано)")) {
             addMessageEntityBold(entities, "(не верифицировано)", messageText);

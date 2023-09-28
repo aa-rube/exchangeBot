@@ -50,7 +50,10 @@ public class SSEService {
                 .publish()
                 .autoConnect()
                 .doOnNext(rootObject -> {
-                   // chat.executeMsg(createMsg.getNewSendMessage(rootObject.getRequests().get(9), filter));
+                    for (RequestDetails requestDetails : rootObject.getRequests()) {
+                        chat.executeMsg(createMsg.getNewSendMessage(requestDetails, filter));
+                    }//just for test
+
                     List<RequestDetails> list = rootObject.getRequests();
                     Instant lastTime = filter.equals("wait") ? lastWaitTime : lastVerifyTime;
                     list.stream()
